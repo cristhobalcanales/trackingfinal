@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geolocalización</title>
+  </head>
+  <body>
+    <h1>Compartir ubicación</h1>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      function obtenerUbicacionContinuamente() {
+        navigator.geolocation.watchPosition(
+          (position) => {
+            const ubicacion = {
+              latitud: position.coords.latitude,
+              longitud: position.coords.longitude,
+            };
+
+            socket.emit("ubicacion", ubicacion);
+          },
+          (error) => {
+            console.error("Error obteniendo ubicación:", error);
+          },
+          {
+            enableHighAccuracy: true,
+            maximumAge: 1000, // Tiempo máximo permitido para información en caché
+            timeout: 5000, // Tiempo máximo de espera para obtener ubicación
+          }
+        );
+      }
+
+      // Solicitar permisos y obtener la ubicación al cargar la página
+      window.onload = () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              // Solicitar permisos y obtener la ubicación inicial
+              setInterval(obtenerUbicacionContinuamente, 1000); // Actualiza la ubicación cada segundo
+            },
+            (error) => {
+              console.error("Error obteniendo ubicación:", error);
+            }
+          );
+        } else {
+          alert("La geolocalización no es soportada por este navegador.");
+        }
+      };
+    </script>
+  </body>
+</html>

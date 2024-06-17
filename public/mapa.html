@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mapa de Ubicación</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      #map {
+        height: 100dvh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // Inicializar el mapa
+        const map = L.map("map").setView([0, 0], 13);
+
+        // Añadir capa de OpenStreetMap
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "© OpenStreetMap",
+        }).addTo(map);
+
+        // Coordenadas de destino
+        const destinationCoordinates = [-33.45441917568674, -70.68824336297328];
+
+        // Añadir marcador en las coordenadas de destino
+        const destinationMarker = L.marker(destinationCoordinates)
+          .addTo(map)
+          .bindPopup("Destino")
+          .openPopup();
+
+        // Marcador para la ubicación del usuario (origen)
+        let userMarker = L.marker([0, 0], { draggable: false }).addTo(map);
+        // Línea que une la ubicación del usuario con las coordenadas de destino
+        let routeLine = L.polyline([], { color: "blue" }).addTo(map);
+
+        // Función para obtener la ruta más corta usando OSRM
+        function getRoute(userLocation, destinationLocation) {
+          const url = `https://router.project-osrm.org/route/v1/driving/${userLocation.lng},${userLocation.lat};${destinationLocation.lng},${destinationLocation.lat}?overview=full&geometries=geojson`;
+          fetch(url)
+            .then((response) => response.json())
+            .then((data) => {
+              const route = data.routes[0].geometry.coordinates;
+              const latLngRoute = route.map((coord) => [coord[1], coord[0]]);
+              routeLine.setLatLngs(latLngRoute);
+            })
+            .catch((error) =>
+              console.error("Error al obtener la ruta:", error)
+            );
+        }
+
+        // Función para actualizar la ubicación del usuario desde el archivo JSON
+        function actualizarUbicacion() {
+          fetch("/ubicacion")
+            .then((response) => response.json())
+            .then((data) => {
+              const userLocation = L.latLng(data.latitud, data.longitud);
+
+              // Actualizar la ubicación del marcador
+              userMarker.setLatLng(userLocation);
+
+              // Obtener y dibujar la ruta más corta
+              getRoute(userLocation, L.latLng(destinationCoordinates));
+            })
+            .catch((error) =>
+              console.error("Error al obtener la ubicación:", error)
+            );
+        }
+
+        // Actualizar la ubicación del usuario cada segundo
+        setInterval(actualizarUbicacion, 1000);
+      });
+    </script>
+  </body>
+</html>
